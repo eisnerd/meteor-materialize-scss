@@ -59,6 +59,16 @@
         $(this.hash).hide();
       });
 
+      $(window).off('hashchange');
+      $(window).on('hashchange', function() {
+        $this
+          .find(
+            window.location.hash
+            ? 'a[href="' + window.location.hash + '"]'
+            : 'a'
+          )
+          .first().click();
+      });
 
       // Bind the click event handler
       $this.on('click', 'a', function(e) {
@@ -88,6 +98,8 @@
         }
         // Change url to current tab
         // window.location.hash = $active.attr('href');
+        if (e.originalEvent && window.history && window.history.pushState)
+          window.history.pushState(null, null, $active.attr('href'));
 
         $content.show();
 
