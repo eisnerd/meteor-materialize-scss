@@ -1990,6 +1990,11 @@ $(document).ready(function(){
       $(this).each(function(){
         var $this = $(this);
         var menu_id = $("#"+ $this.attr('data-activates'));
+        var menu = menu_id[0];
+        var last_x;
+        var body_overflow_hide = true;
+        var sidenavOverlay;
+        var overlayPerc = 0;
 
         // Set to width
         if (options.menuWidth != 240) {
@@ -2002,6 +2007,8 @@ $(document).ready(function(){
 
         if (options.edge == 'left') {
           menu_id.css('left', -1 * (options.menuWidth + 10));
+          menu.style.transform = "translate3d(0, 0, 0)";
+          last_x = 0;
           dragTarget.css({'left': 0}); // Add Touch Area
         }
         else {
@@ -2014,7 +2021,7 @@ $(document).ready(function(){
         // If fixed sidenav, bring menu out
         if (menu_id.hasClass('fixed')) {
             if (window.innerWidth > 992) {
-              menu_id.css('left', 0);
+              menu.style.transform = "translate3d(" + (last_x = options.menuWidth + 10) + "px, 0, 0)";
             }
           }
 
@@ -2032,9 +2039,11 @@ $(document).ready(function(){
               }
             }
             else if (menuOut === false){
-              if (options.edge === 'left')
+              if (options.edge === 'left') {
                 menu_id.css('left', -1 * (options.menuWidth + 10));
-              else
+                menu.style.transform = "translate3d(0, 0, 0)";
+                last_x = 0;
+              } else
                 menu_id.css('right', -1 * (options.menuWidth + 10));
             }
 
@@ -2054,16 +2063,18 @@ $(document).ready(function(){
 
           // Reenable scrolling
           $('body').css('overflow', '');
+          body_overflow_hide = true;
 
-          $('#sidenav-overlay').velocity({opacity: 0}, {duration: 200, queue: false, easing: 'easeOutQuad',
+          $('#sidenav-overlay').velocity({opacity: [0, overlayPerc]}, {duration: 200, queue: false, easing: 'easeOutQuad',
             complete: function() {
               $(this).remove();
             } });
+          overlayPerc = 0;
           if (options.edge === 'left') {
             // Reset phantom div
             dragTarget.css({width: '', right: '', left: '0'});
             menu_id.velocity(
-              {left: -1 * (options.menuWidth + 10)},
+              {translateZ: 0, translateX: [0, last_x]},
               { duration: 200,
                 queue: false,
                 easing: 'easeOutCubic',
@@ -2076,6 +2087,7 @@ $(document).ready(function(){
                 }
 
             });
+            last_x = 0;
           }
           else {
             // Reset phantom div
@@ -2118,7 +2130,10 @@ $(document).ready(function(){
             var velocityX = e.gesture.velocityX;
 
             // Disable Scrolling
-            $('body').css('overflow', 'hidden');
+            if (body_overflow_hide) {
+                $('body').css('overflow', 'hidden');
+                body_overflow_hide = false;
+            }
 
             // If overlay does not exist, create one and if it is clicked, close menu
             if ($('#sidenav-overlay').length === 0) {
@@ -2127,6 +2142,7 @@ $(document).ready(function(){
                 removeMenu();
               });
               $('body').append(overlay);
+              sidenavOverlay = $('#sidenav-overlay')[0];
             }
 
             // Keep within boundaries
@@ -2141,7 +2157,7 @@ $(document).ready(function(){
               // Right Direction
               else if (x >= (options.menuWidth / 2)) { menuOut = true; }
 
-              menu_id.css('left', (x - options.menuWidth));
+              menu.style.transform = "translate3d(" + (last_x = x + 10) + "px, 0, 0)";
             }
             else {
               // Left Direction
@@ -2164,10 +2180,10 @@ $(document).ready(function(){
 
 
             // Percentage overlay
-            var overlayPerc;
             if (options.edge === 'left') {
               overlayPerc = x / options.menuWidth;
-              $('#sidenav-overlay').velocity({opacity: overlayPerc }, {duration: 50, queue: false, easing: 'easeOutQuad'});
+              if (sidenavOverlay)
+                sidenavOverlay.style.opacity = overlayPerc;
             }
             else {
               overlayPerc = Math.abs((x - window.innerWidth) / options.menuWidth);
@@ -2183,15 +2199,19 @@ $(document).ready(function(){
             if (options.edge === 'left') {
               // If velocityX <= 0.3 then the user is flinging the menu closed so ignore menuOut
               if ((menuOut && velocityX <= 0.3) || velocityX < -0.5) {
-                menu_id.velocity({left: 0}, {duration: 300, queue: false, easing: 'easeOutQuad'});
-                $('#sidenav-overlay').velocity({opacity: 1 }, {duration: 50, queue: false, easing: 'easeOutQuad'});
+                menu_id.velocity({translateZ: 0, translateX: [options.menuWidth + 10, last_x]}, {duration: 300, queue: false, easing: 'easeOutQuad'});
+                last_x = options.menuWidth + 10;
+                $('#sidenav-overlay').velocity({opacity: [1, overlayPerc] }, {duration: 50, queue: false, easing: 'easeOutQuad'});
+                overlayPerc = 1;
                 dragTarget.css({width: '50%', right: 0, left: ''});
               }
               else if (!menuOut || velocityX > 0.3) {
                 // Enable Scrolling
                 $('body').css('overflow', '');
+                body_overflow_hide = true;
                 // Slide menu closed
-                menu_id.velocity({left: -1 * (options.menuWidth + 10)}, {duration: 200, queue: false, easing: 'easeOutQuad'});
+                menu_id.velocity({translateZ: 0, translateX: [0, last_x]}, {duration: 200, queue: false, easing: 'easeOutQuad'});
+                last_x = 0;
                 $('#sidenav-overlay').velocity({opacity: 0 }, {duration: 200, queue: false, easing: 'easeOutQuad',
                   complete: function () {
                     $(this).remove();
@@ -2208,6 +2228,7 @@ $(document).ready(function(){
               else if (!menuOut || velocityX < -0.3) {
                 // Enable Scrolling
                 $('body').css('overflow', '');
+                body_overflow_hide = true;
                 // Slide menu closed
                 menu_id.velocity({right: -1 * (options.menuWidth + 10)}, {duration: 200, queue: false, easing: 'easeOutQuad'});
                 $('#sidenav-overlay').velocity({opacity: 0 }, {duration: 200, queue: false, easing: 'easeOutQuad',
@@ -2231,12 +2252,14 @@ $(document).ready(function(){
 
               // Disable Scrolling
               $('body').css('overflow', 'hidden');
+              body_overflow_hide = false;
               // Push current drag target on top of DOM tree
               $('body').append(dragTarget);
-              
+
               if (options.edge === 'left') {
                 dragTarget.css({width: '50%', right: 0, left: ''});
-                menu_id.velocity({left: 0}, {duration: 300, queue: false, easing: 'easeOutQuad'});
+                menu_id.velocity({translateZ: 0, translateX: [options.menuWidth + 10, last_x]}, {duration: 300, queue: false, easing: 'easeOutQuad'});
+                last_x = options.menuWidth + 10;
               }
               else {
                 dragTarget.css({width: '50%', right: '', left: 0});
